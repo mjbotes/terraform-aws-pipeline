@@ -63,19 +63,25 @@ GitHub Actions (CI/CD)
 
 ### Pipeline Stages
 
-1. **Terraform** - Infrastructure deployment
+1. **Terraform Plan** - Infrastructure planning
+   - Shows what resources will be created/modified
+   - Generates execution plan for review
+
+2. **Approval Gate** - Manual review
+   - Review Terraform plan output
+   - Manual approval required before apply
+   - Only authorized users can approve
+
+3. **Terraform Apply** - Infrastructure deployment
+   - Executes the approved plan
    - Provisions all AWS resources
    - Outputs instance ID for deployment
 
-2. **Build** - Docker image creation
+4. **Build** - Docker image creation
    - Builds Nginx image with "Hello World" page
    - Pushes to ECR
 
-3. **Approval** - Manual gate
-   - Requires manual approval before deployment
-   - Configured via GitHub environment
-
-4. **Deploy** - Container deployment
+5. **Deploy** - Container deployment
    - Pulls image from ECR to EC2
    - Runs container on port 80
 
@@ -108,9 +114,10 @@ GitHub Actions (CI/CD)
    ```
 
 4. **Pipeline Execution**
-   - Terraform provisions infrastructure (~5 min)
+   - Terraform plan shows proposed changes (~1 min)
+   - Manual approval required (review plan output)
+   - Terraform apply executes approved plan (~5 min)
    - Docker image builds and pushes to ECR (~2 min)
-   - Manual approval required (wait for reviewer)
    - Container deploys to EC2 (~1 min)
 
 5. **Access Application**

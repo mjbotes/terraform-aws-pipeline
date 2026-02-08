@@ -47,6 +47,16 @@ jobs:
         run: terraform init
         working-directory: ./infra
       
+      - name: Terraform Plan
+        if: github.event.inputs.action != 'destroy'
+        run: |
+          terraform plan -out=tfplan
+          echo "## Terraform Plan" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          terraform show -no-color tfplan >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        working-directory: ./infra
+      
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
         run: terraform destroy -auto-approve
@@ -54,7 +64,7 @@ jobs:
       
       - name: Terraform Apply
         if: github.event.inputs.action != 'destroy'
-        run: terraform apply -auto-approve
+        run: terraform apply tfplan
         working-directory: ./infra
       
       - name: Get Outputs
@@ -106,7 +116,7 @@ jobs:
               "docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest",
               "docker stop nginx || true",
               "docker rm nginx || true",
-              "docker run -d --name nginx -p 80:80 --restart unless-stopped ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest"
+              "docker run -d --name nginx -p 0.0.0.0:80:80 --restart unless-stopped ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest"
             ]' \
             --query "Command.CommandId" \
             --output text)
