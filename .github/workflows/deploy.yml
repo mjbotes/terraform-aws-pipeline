@@ -57,7 +57,7 @@ jobs:
       
       - name: Upload Plan
         if: github.event.inputs.action != 'destroy'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tfplan
           path: infra/tfplan
@@ -89,7 +89,7 @@ jobs:
       
       - name: Download Plan
         if: needs.plan.outputs.action != 'destroy'
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tfplan
           path: infra/
