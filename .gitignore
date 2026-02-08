@@ -1,21 +1,11 @@
 # Terraform
 *.tfstate
 *.tfstate.*
+*.tfvars
 .terraform/
 .terraform.lock.hcl
-crash.log
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
 
-# Sensitive files
-*.pem
-*.key
-.env
-secrets.txt
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
@@ -24,3 +14,9 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Logs
+*.log
+
+# Lambda deployment packages
+*.zip
