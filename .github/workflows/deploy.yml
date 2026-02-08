@@ -23,11 +23,9 @@ permissions:
   contents: read
 
 jobs:
-  terraform:
+  plan:
     runs-on: ubuntu-latest
-    environment: production
     outputs:
-      instance_id: ${{ steps.output.outputs.instance_id }}
       action: ${{ github.event.inputs.action || 'deploy' }}
     steps:
       - uses: actions/checkout@v3
@@ -57,18 +55,57 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         working-directory: ./infra
       
+      - name: Upload Plan
+        if: github.event.inputs.action != 'destroy'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: infra/tfplan
+
+  terraform:
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      instance_id: ${{ steps.output.outputs.instance_id }}
+      action: ${{ needs.plan.outputs.action }}
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./infra
+      
+      - name: Download Plan
+        if: needs.plan.outputs.action != 'destroy'
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan
+          path: infra/
+      
       - name: Terraform Destroy
-        if: github.event.inputs.action == 'destroy'
+        if: needs.plan.outputs.action == 'destroy'
         run: terraform destroy -auto-approve
         working-directory: ./infra
       
       - name: Terraform Apply
-        if: github.event.inputs.action != 'destroy'
+        if: needs.plan.outputs.action != 'destroy'
         run: terraform apply tfplan
         working-directory: ./infra
       
       - name: Get Outputs
-        if: github.event.inputs.action != 'destroy'
+        if: needs.plan.outputs.action != 'destroy'
         id: output
         run: echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
         working-directory: ./infra
