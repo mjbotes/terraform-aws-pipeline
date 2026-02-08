@@ -5,19 +5,56 @@
 - GitHub Account
 - Git installed locally
 
-## Setup (5 minutes)
+## Setup (10 minutes)
 
-### 1. Configure GitHub Secrets
+### 1. Setup AWS OIDC Provider (One-time)
+AWS Console → IAM → Identity providers → Add provider:
+- Provider type: OpenID Connect
+- Provider URL: `https://token.actions.githubusercontent.com`
+- Audience: `sts.amazonaws.com`
+
+### 2. Create IAM Role
+AWS Console → IAM → Roles → Create role:
+
+**Trust Policy** (replace `<GITHUB_USERNAME>` and `<REPO_NAME>`):
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::<AWS_ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                    "token.actions.githubusercontent.com:sub": "repo:<GITHUB_USERNAME>/<REPO_NAME>:ref:refs/heads/main"
+                }
+            }
+        }
+    ]
+}
+```
+
+**Attach these AWS managed policies:**
+- `AmazonEC2FullAccess`
+- `AmazonRDSFullAccess`
+- `AmazonEC2ContainerRegistryFullAccess`
+- `IAMFullAccess`
+- `AmazonSSMFullAccess`
+
+### 3. Configure GitHub Secrets
 Go to: Repository → Settings → Secrets and variables → Actions
 
 Add these secrets:
 ```
-AWS_ACCESS_KEY_ID=<your-access-key>
-AWS_SECRET_ACCESS_KEY=<your-secret-key>
+AWS_ROLE_ARN=arn:aws:iam::<AWS_ACCOUNT_ID>:role/<ROLE_NAME>
 AWS_ACCOUNT_ID=<your-12-digit-account-id>
 ```
 
-### 2. Configure GitHub Environment
+### 4. Configure GitHub Environment
 Go to: Repository → Settings → Environments
 
 1. Click "New environment"
@@ -26,14 +63,14 @@ Go to: Repository → Settings → Environments
 4. Add yourself as reviewer
 5. Save
 
-### 3. Deploy
+### 5. Deploy
 ```bash
 git add .
 git commit -m "Initial deployment"
 git push origin main
 ```
 
-### 4. Monitor Pipeline
+### 6. Monitor Pipeline
 Go to: Repository → Actions
 
 Watch the pipeline execute:
@@ -43,7 +80,7 @@ Watch the pipeline execute:
 - Click "Review deployments" → Approve
 - ✅ Deploy (1 min)
 
-### 5. Access Application
+### 7. Access Application
 Check Actions output for public IP:
 ```
 http://<public-ip>
@@ -67,8 +104,9 @@ terraform output
 ## Troubleshooting
 
 **Pipeline fails at Terraform?**
-- Check AWS credentials are correct
-- Verify AWS account has necessary permissions
+- Check AWS role ARN is correct
+- Verify OIDC provider is configured
+- Ensure role trust policy matches your repo
 
 **Can't access web page?**
 - Wait 2-3 minutes after deployment

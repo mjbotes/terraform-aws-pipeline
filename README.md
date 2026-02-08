@@ -84,9 +84,9 @@ GitHub Actions (CI/CD)
 ### Prerequisites
 1. AWS Account with appropriate permissions
 2. GitHub repository
-3. Configure GitHub Secrets:
-   - `AWS_ACCESS_KEY_ID`
-   - `AWS_SECRET_ACCESS_KEY`
+3. Configure AWS OIDC Provider and IAM Role
+4. Configure GitHub Secrets:
+   - `AWS_ROLE_ARN`
    - `AWS_ACCOUNT_ID`
 
 ### Setup Steps
@@ -123,7 +123,8 @@ GitHub Actions (CI/CD)
 - EC2 only allows HTTP/SSH inbound
 - IAM roles follow least privilege principle
 - Manual approval gate prevents unauthorized deployments
-- Credentials stored as GitHub secrets
+- OIDC authentication (no long-lived credentials)
+- GitHub secrets for sensitive data
 
 ## Cost Optimization
 
@@ -161,8 +162,9 @@ aws/
 ## Troubleshooting
 
 ### Pipeline fails at Terraform stage
-- Verify AWS credentials in GitHub secrets
-- Check AWS account limits
+- Verify AWS role ARN in GitHub secrets
+- Check OIDC provider is configured correctly
+- Ensure role trust policy matches your repository
 
 ### Build fails
 - Ensure AWS_ACCOUNT_ID is correct
