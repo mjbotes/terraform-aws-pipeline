@@ -55,8 +55,11 @@ resource "aws_instance" "web" {
     systemctl enable docker
     usermod -aG docker ec2-user
   EOF
+  
   tags = {
     Name = "web-server"
+    Environment = "demo"
+    AutoShutdown = "true"
   }
 }
 

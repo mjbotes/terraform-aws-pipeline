@@ -5,7 +5,7 @@
 - GitHub Account
 - Git installed locally
 
-## Setup (10 minutes)
+## Setup (5 minutes)
 
 ### 1. Setup AWS OIDC Provider (One-time)
 AWS Console → IAM → Identity providers → Add provider:
@@ -44,6 +44,8 @@ AWS Console → IAM → Roles → Create role:
 - `AmazonEC2ContainerRegistryFullAccess`
 - `IAMFullAccess`
 - `AmazonSSMFullAccess`
+- `AWSLambda_FullAccess`
+- `CloudWatchEventsFullAccess`
 
 ### 3. Configure GitHub Secrets
 Go to: Repository → Settings → Secrets and variables → Actions
@@ -74,10 +76,10 @@ git push origin main
 Go to: Repository → Actions
 
 Watch the pipeline execute:
+- ⏸️ Terraform (waiting for approval)
+- Click "Review deployments" → Approve
 - ✅ Terraform (5 min)
 - ✅ Build (2 min)
-- ⏸️ Approval (waiting for you)
-- Click "Review deployments" → Approve
 - ✅ Deploy (1 min)
 
 ### 7. Access Application
@@ -88,18 +90,41 @@ http://<public-ip>
 
 You should see: "Hello World"
 
-## Verify Infrastructure
+## Cost Optimization Features
 
-### AWS Console
-1. EC2 → Instances → "web-server" (running)
-2. RDS → Databases → "mydb" (available)
-3. ECR → Repositories → "app-repository" (1 image)
+### Automatic Shutdown
+- Resources tagged with `AutoShutdown=true` stop daily at 6 PM UTC
+- Lambda function automatically stops EC2 and RDS instances
+- Saves ~70% on compute costs for demo environments
 
-### Terraform Outputs
+### Cost-Optimized Configuration
+- RDS: Single-AZ, no backups, no multi-AZ
+- EC2: t2.micro (free tier eligible)
+- No NAT Gateway (uses public subnets)
+- Local Terraform state (no S3 costs)
+
+## Destroy Infrastructure
+
+### Option 1: GitHub Actions (Recommended)
+1. Go to: Repository → Actions
+2. Click "CI/CD Pipeline" → "Run workflow"
+3. Select "destroy" from dropdown
+4. Click "Run workflow"
+5. Wait ~3 minutes for complete destruction
+
+### Option 2: Local Terraform
 ```bash
 cd infra
-terraform output
+terraform destroy -auto-approve
 ```
+
+### Option 3: AWS Console
+Manually delete resources in this order:
+1. EC2 instances
+2. RDS databases
+3. ECR repositories
+4. Lambda functions
+5. VPC and subnets
 
 ## Troubleshooting
 
@@ -107,6 +132,7 @@ terraform output
 - Check AWS role ARN is correct
 - Verify OIDC provider is configured
 - Ensure role trust policy matches your repo
+- Add Lambda and CloudWatch permissions to IAM role
 
 **Can't access web page?**
 - Wait 2-3 minutes after deployment
@@ -119,7 +145,13 @@ terraform output
 
 ## Clean Up
 
-To destroy all resources:
+**Automatic Destruction:**
+```bash
+# Via GitHub Actions
+Repository → Actions → Run workflow → Select "destroy"
+```
+
+**Manual Destruction:**
 ```bash
 cd infra
 terraform destroy -auto-approve

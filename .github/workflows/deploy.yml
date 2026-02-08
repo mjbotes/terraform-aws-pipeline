@@ -3,6 +3,16 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+        - deploy
+        - destroy
 
 env:
   AWS_REGION: us-east-1
@@ -15,8 +25,10 @@ permissions:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    environment: production
     outputs:
       instance_id: ${{ steps.output.outputs.instance_id }}
+      action: ${{ github.event.inputs.action || 'deploy' }}
     steps:
       - uses: actions/checkout@v3
       
@@ -35,17 +47,25 @@ jobs:
         run: terraform init
         working-directory: ./infra
       
+      - name: Terraform Destroy
+        if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
+        working-directory: ./infra
+      
       - name: Terraform Apply
+        if: github.event.inputs.action != 'destroy'
         run: terraform apply -auto-approve
         working-directory: ./infra
       
       - name: Get Outputs
+        if: github.event.inputs.action != 'destroy'
         id: output
         run: echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
         working-directory: ./infra
 
   build:
     needs: terraform
+    if: needs.terraform.outputs.action != 'destroy'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -65,16 +85,9 @@ jobs:
           docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
-  approval:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Manual approval
-        run: echo "Approved for deployment"
-
   deploy:
-    needs: [terraform, approval]
+    needs: [terraform, build]
+    if: needs.terraform.outputs.action != 'destroy'
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS credentials
