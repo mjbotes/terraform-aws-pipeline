@@ -6,12 +6,8 @@ output "public_ip" {
   value = aws_instance.web.public_ip
 }
 
-output "alb_dns_name" {
-  value = aws_lb.web.dns_name
-}
-
 output "web_url" {
-  value = "http://${aws_lb.web.dns_name}"
+  value = "http://${aws_instance.web.public_ip}"
 }
 
 output "rds_endpoint" {
@@ -24,8 +20,4 @@ output "rds_database" {
 
 output "ecr_repository_url" {
   value = aws_ecr_repository.app.repository_url
-}
-
-output "secrets_manager_arn" {
-  value = aws_secretsmanager_secret.db_password.arn
 }

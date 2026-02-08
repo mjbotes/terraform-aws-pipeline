@@ -1,16 +1,7 @@
 # Terraform Backend Configuration
-
-# Create S3 bucket and DynamoDB table for state management:
-# 
-# aws s3api create-bucket --bucket <your-unique-bucket-name>-terraform-state --region us-east-1
-# aws dynamodb create-table --table-name terraform-state-lock --attribute-definitions AttributeName=LockID,AttributeType=S --key-schema AttributeName=LockID,KeyType=HASH --billing-mode PAY_PER_REQUEST
+# Using local backend for simplicity - no S3 bucket required
 
 terraform {
-  backend "s3" {
-    bucket         = "your-bucket-name-terraform-state"
-    key            = "aws-infra/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-state-lock"
-    encrypt        = true
-  }
+  # Local backend - state stored locally
+  # For production, consider using S3 backend with proper bucket setup
 }
